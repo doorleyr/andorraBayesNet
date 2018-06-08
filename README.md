@@ -6,7 +6,7 @@ Estimates travel demand and traffic in Andorra based on combination of telecom d
 This repo contains 3 main components:
 
 ### 1. Model Calibration
-The andorraPGMnet.py script reads the pre-prepared hourly "naive" O-D matrices (estimated from RNC telecom data) and some hourly 
+The andorraBayesNet.py script reads the pre-prepared hourly "naive" O-D matrices (estimated from RNC telecom data) and some hourly 
 traffic count data for a number of junctions in Andorra. It uses the combination of these data sources to produce calibrated 
 O-D matrices and traffic volume estimates for every road and each hour. There is no need to run this script as the results are 
 already in the data/results folder. This process in described in more detail in the Methodology section.
