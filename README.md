@@ -16,7 +16,7 @@ The appSocket.py script reads the results of the model calibration, produces geo
 front end.
 
 ### 3. Projection Mapping
-The javascript front end maps the results of the analysis using a keystonable Mapbox layout.
+The javascript front end maps the results of the analysis using a keystonable [Mapbox](https://www.mapbox.com/) map. This projection mapping uses the excellent [MapTasticJS lib](https://github.com/glowbox/maptasticjs).
 
 ## Running
 
