@@ -1,4 +1,4 @@
-# Andorra PGM transport model
+# Bayesian Network Model for traffic conditions in Andorra
 Estimates travel demand and traffic in Andorra based on combination of telecom data and limited traffic counts using a Gaussian Bayesian Network model. A JS front end maps the results over time.
 
 ## Overview
@@ -18,6 +18,8 @@ front end.
 ### 3. Projection Mapping
 The javascript front end maps the results of the analysis using a keystonable [Mapbox](https://www.mapbox.com/) map. This projection mapping uses the excellent [MapTasticJS lib](https://github.com/glowbox/maptasticjs).
 
+![traffic mapping](images/trafficMap.png)
+
 ## Running
 
 In order to run the visualisation:
@@ -32,6 +34,8 @@ An initial O-D matrix is estimated based on the available telecoms data. This O-
 However, traffic volume counts provide a reliable source of information in relation to the traffic on a subset of roads. 
 A Bayesian network model is therefore constructed to represent the relationships betwen the O-D flows and the traffic volumes. 
 The Bayesian network model allows the available evidence on traffic volumes to update our estimates about the O-D flows through probabilistic relationships.
+
+![bayesNet](images/BayesNet.png)
 
 By combining the Bayesian network approach with a network equilibrium model (stochastic user equilibrium), the effects of traffic congestion are also taken into account.
 
