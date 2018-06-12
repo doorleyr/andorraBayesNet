@@ -96,16 +96,16 @@ function makeMap() {
               "line-opacity":1
           }    
       });
-    map.addLayer({
-          "id": "bounds",
-          "type": "fill",
-          "source": { type: 'geojson', data: boundsData },
-          'paint': {
-            'fill-color': '#fff',
-            'fill-opacity': 0.1
-        }
+    // map.addLayer({
+    //       "id": "bounds",
+    //       "type": "fill",
+    //       "source": { type: 'geojson', data: boundsData },
+    //       'paint': {
+    //         'fill-color': '#fff',
+    //         'fill-opacity': 0.1
+    //     }
              
-      });
+    //   });
 
 
     firstTime=0;
