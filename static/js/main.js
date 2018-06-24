@@ -1,7 +1,7 @@
 var Msg
 var firstTime=1
 
-Maptastic("map");
+//Maptastic("map");
 
 class MyCustomControl {
   onAdd(map){
@@ -19,6 +19,7 @@ class MyCustomControl {
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiZG9vcmxleXJtaXQiLCJhIjoiY2pnNnh5NHJwOHp2YzJ4bXNkdWZyNWd3ZSJ9.am1Wub7LEzVfZKHAdRZe4g';
 
+// Initialise the map
 var map = new mapboxgl.Map({
     container: 'map', // container id
     style: 'mapbox://styles/mapbox/dark-v9', // stylesheet location
@@ -28,13 +29,9 @@ var map = new mapboxgl.Map({
 }); 
 
 const myCustomControl = new MyCustomControl();
-
 map.addControl(myCustomControl, 'top-left');
 
-
 $(document).ready(function(){ 
-            // Initialise the map
-             
 
             /////////////////////////////////////////
             //Open the conections with the back end
@@ -68,6 +65,9 @@ $(document).ready(function(){
                 Msg=msg
                 console.log('Received an update')
                 makeMap()
+                zones=Msg.data.od.zones
+                matrix=Msg.data.od.matrix
+                drawOdMap(zones, matrix)
             });
 
 });
@@ -79,7 +79,7 @@ function makeMap() {
   boundsData=data.bounds;
   period=Msg.period;
 
-  
+  // TODO: clean this up so that an arbitrary number of geojsons can be visualised
   if (firstTime==1) {
     map.addSource('linksSource', { type: 'geojson', data: linksData });
     map.addLayer({

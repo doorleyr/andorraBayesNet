@@ -9,6 +9,8 @@ import numpy as np
 from datetime import datetime
 import json
 import pickle
+#import pandas as pd
+import csv
 from threading import Lock
 from flask import  session, request
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
@@ -37,11 +39,13 @@ def background_thread():
         for linkIndex in range(len(linksOut['features'])):
             linksOut['features'][linkIndex]['properties']['width']=1+15*(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic)
             linksOut['features'][linkIndex]['properties']['color']=getColor(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic, cmap)
+        odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
+        matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
         #updateSpatialData()        
         socketio.emit('backendUpdates',
-                      {'data': {'links':linksOut, 'bounds':bounds}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
+                      {'data': {'links':linksOut, 'bounds':bounds, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
                       namespace='/test')
-        socketio.sleep(1)
+        socketio.sleep(10)
         count+=1
 
 @app.route('/')
@@ -79,6 +83,11 @@ nodeIDsD=pickle.load( open( "data/network/nodeIDsDriveJun18.p", "rb" ) )
 nodesXYD=pickle.load( open( "data/network/nodesXYDriveJun18.p", "rb" ) )
 flows=pickle.load(open( "data/results/andorraBayesSolution.p", "rb"))
 zonesXY=pickle.load(open( "data/od/ODxy_Oct17.p", "rb"))
+nTaz=len(zonesXY)
+with open("data/od/regions.csv") as f:
+    zones = [{k: v for k, v in row.items()} 
+    for row in csv.DictReader(f, skipinitialspace=True)]
+#regions=pd.read_csv("data/od/regions.csv")
 bounds=json.load(open( "data/geojson/bounds.geojson"))
 periods=sorted(flows.keys())
 maxTrips=np.max([np.max(flows[p]['OD']) for p in periods])
@@ -96,6 +105,11 @@ for linkIndex, row in netD.iterrows():
     }}
     featureArray.extend([feat])
 linksOut={'type':'FeatureCollection', 'features': featureArray}
+
+odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
+
+matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
+
 
 #flowsOut={p: {'OD': [[flows[p]['newOD'][i,j] for j in range(len(flows[p]['newOD']))] for i in range(len(flows[p]['newOD']))], 'traffic': flows[p]['newTraffic']} for p in flows}
 #
