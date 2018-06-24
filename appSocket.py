@@ -8,6 +8,7 @@ from flask import render_template
 import numpy as np
 from datetime import datetime
 import json
+import math
 import pickle
 #import pandas as pd
 import csv
@@ -39,13 +40,14 @@ def background_thread():
         for linkIndex in range(len(linksOut['features'])):
             linksOut['features'][linkIndex]['properties']['width']=1+15*(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic)
             linksOut['features'][linkIndex]['properties']['color']=getColor(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic, cmap)
+            linksOut['features'][linkIndex]['properties']['scale']=math.sqrt(max(0,flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic))
         odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
         matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
         #updateSpatialData()        
         socketio.emit('backendUpdates',
                       {'data': {'links':linksOut, 'bounds':bounds, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
                       namespace='/test')
-        socketio.sleep(10)
+        socketio.sleep(15)
         count+=1
 
 @app.route('/')
@@ -101,7 +103,7 @@ featureArray=[]
 for linkIndex, row in netD.iterrows():
     feat={'type':'Feature','geometry':{'type':'LineString','coordinates': [[row['aNodeLon'], row['aNodeLat']], [row['bNodeLon'], row['bNodeLat']]]},'properties':{'type':row['type']
     , 'width':20*(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic)
-    ,'color':getColor(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic, cmap)
+    ,'color':getColor(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic, cmap), 'scale':math.sqrt(max(0,flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic))
     }}
     featureArray.extend([feat])
 linksOut={'type':'FeatureCollection', 'features': featureArray}

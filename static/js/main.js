@@ -1,5 +1,7 @@
 var Msg
 var firstTime=1
+var chromaScale = chroma.scale(['#62B1F6', '#DB70DB','#2E0854']);
+console.log(chromaScale(0.5).hex())
 
 //Maptastic("map");
 
@@ -90,9 +92,19 @@ function makeMap() {
             "line-join": "round",
             "line-cap": "round"},
           "paint": {
-              // "line-width":['get', '1472713200', ['get', 'width']],
-              "line-width":['get', 'width'],
-              "line-color":['get', 'color'],
+              "line-width":['+',1,['*', 10, ['get', 'scale']]],
+              "line-color":["case", 
+                ['>',['number',['get', 'scale']],0.8],['rgb', 200,0,0],
+                ['>',['number',['get', 'scale']],0.6],['rgb', 200,100,0],
+                ['>',['number',['get', 'scale']],0.4],['rgb', 200,200,0],
+                ['>',['number',['get', 'scale']],0.2],['rgb', 100,200,0],
+                ['rgb', 0,200,0]],
+              // "line-color":[
+              //                 "rgb",
+              //                 ["*",["get", "test"],200], // red is higher when feature.properties.test is higher
+              //                 ['-',200,["*",["get", "test"],200]],// green is lower when feature.properties.test is higher
+              //                 0]// blue is always zero
+              //             ],
               "line-opacity":1
           }    
       });

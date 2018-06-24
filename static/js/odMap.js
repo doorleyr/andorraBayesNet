@@ -1,8 +1,8 @@
 function drawOdMap(zones, matrix){
 	// zones should be an array of zone objects with attributes name and color
 	// matrix should be a square matrix of size n×n
-var width = 1800,
-height = 1800,
+var width = 1400,
+height = 1400,
 outerRadius = Math.min(width, height) / 2 - 10,
 innerRadius = outerRadius - 24;
  
