@@ -27,39 +27,24 @@ thread_lock = Lock()
 
 updateInterval=3
 
-def getColor(value, cmap):
-    col1=cmap(value)
-    #col1Hex='#%02x%02x%02x' % (int(256*col1[0]), int(256*col1[1]), int(256*col1[2]))
-    col1Hex=matplotlib.colors.rgb2hex(col1)
-    return col1Hex
-
 def background_thread():
     """send server generated events to clients."""
     count = 0
-    # first data
-#    socketio.emit('backendUpdates',
-#                      {'data': {'spatial':{'links':linksOut, 'bounds':bounds}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
-#                      namespace='/test')
-#    socketio.sleep(updateInterval)
-    
-    # data updates
     while True:
         pIndex=count%len(periods)
         for linkIndex in range(len(linksOut['features'])):
             linksOut['features'][linkIndex]['properties']['scale']=math.sqrt(max(0,flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic))
         odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
         matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
-        if count==0:            
-            socketio.emit('backendUpdates',
-                      {'data': {'spatial':{'links':linksOut, 'bounds':bounds}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
-                      namespace='/test')
+#        if count==0:            
+#            socketio.emit('backendUpdates',
+#                      {'data': {'spatial':{'links':linksOut, 'bounds':bounds}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
+#                      namespace='/test')
             
-        else:
-            linksOut['update']=1
-            #updateSpatialData()        
-            socketio.emit('backendUpdates',
-                          {'data': {'spatial':{'links':linksOut}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
-                          namespace='/test')
+        #updateSpatialData()        
+        socketio.emit('backendUpdates',
+                      {'data': {'spatial':{'links':linksOut, 'bounds': bounds}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
+                      namespace='/test')
         socketio.sleep(updateInterval)
         count+=1
 
@@ -74,7 +59,12 @@ def test_message(message):
     emit('my_response',
          {'data': 'return to sender '+message['data'], 'count': session['receive_count']})
     print('Recieved from front end: ' + str(message['data']))
-    
+
+@socketio.on('initialDataRequest', namespace='/test')
+def initial_data(message):
+    mapOptions={'style': 'mapbox://styles/mapbox/dark-v9', 'center': [1.521835, 42.506317], 'pitch':0, 'zoom':15}
+    emit('initialData', {'mapOptions': mapOptions,'data': {'spatial':bounds }})
+    print('Recieved from front end: ' + str(message['data']))
     
 @socketio.on('connect', namespace='/test')
 def test_connect():
@@ -119,8 +109,10 @@ for linkIndex, row in netD.iterrows():
     }}
     featureArray.extend([feat])
 
-linksOut={'type':'FeatureCollection', 'features': featureArray, 'update':0}
-bounds['update']=0
+linksOut={'type':'FeatureCollection', 'features': featureArray}
+
+#Initialise the map
+
 
 #odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
 #matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]

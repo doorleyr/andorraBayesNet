@@ -1,7 +1,9 @@
 var Msg
+var map
 var firstTime=1
+var initialised=0
 var chromaScale = chroma.scale(['#62B1F6', '#DB70DB','#2E0854']);
-console.log(chromaScale(0.5).hex())
+var myCustomControl
 
 //Maptastic("map");
 
@@ -21,17 +23,27 @@ class MyCustomControl {
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiZG9vcmxleXJtaXQiLCJhIjoiY2pnNnh5NHJwOHp2YzJ4bXNkdWZyNWd3ZSJ9.am1Wub7LEzVfZKHAdRZe4g';
 
-// Initialise the map
-var map = new mapboxgl.Map({
-    container: 'map', // container id
-    style: 'mapbox://styles/mapbox/dark-v9', // stylesheet location
-    center: [1.521835, 42.506317], // starting position [lng, lat]
-    zoom: 14 ,// starting zoom
-    pitch:0
-}); 
+function initialMap(options){
+  // Initialise the map  
+  map = new mapboxgl.Map({
+      container: 'map', // container id
+      style: options.style,
+      center: options.center, // starting position [lng, lat]
+      zoom: options.zoom ,// starting zoom
+      pitch: options.pitch
+  // map = new mapboxgl.Map({
+  //   container: 'map', // container id
+  //   style: 'mapbox://styles/mapbox/dark-v9', // stylesheet location
+  //   center: [1.521835, 42.506317], // starting position [lng, lat]
+  //   zoom: 14 ,// starting zoom
+  //   pitch:0
+  }); 
 
-const myCustomControl = new MyCustomControl();
+myCustomControl = new MyCustomControl();
 map.addControl(myCustomControl, 'top-left');
+}
+
+
 
 $(document).ready(function(){ 
 
@@ -53,42 +65,46 @@ $(document).ready(function(){
             // The callback function is invoked when a connection with the
             // server is established.
             socket.on('connect', function() {
-                socket.emit('my_event', {data: 'Front end says: I\'m connected!'});
+              socket.emit('initialDataRequest', {data: 'Front end wants the initial data'});
+              socket.emit('my_event', {data: 'Front end says: I\'m connected!'});
+                
             });
             // Event handler for server sent data.
             // The callback function is invoked whenever the server emits data
-            // to the client. The data is then displayed in the "Received"
-            // section of the page.
+            // to the client. 
             socket.on('my_response', function(msg) {           
                 console.log(msg.data)
             });
 
-            socket.on('backendUpdates', function(msg) {               
-                Msg=msg
-                console.log('Received an update')
-                makeMap()
-                zones=Msg.data.od.zones
-                matrix=Msg.data.od.matrix
-                drawOdMap(zones, matrix)
+            socket.on('initialData', function(msg) {           
+                console.log(msg.data);
+                initialMap(msg.mapOptions);
+                //Msg=msg;                
+                // map.on('load', function () {
+                // });               
+            });
+
+            socket.on('backendUpdates', function(msg) {           
+                console.log('Received an update');
+                makeMap(msg);
+                drawOdMap(msg.data.od.zones, msg.data.od.matrix);
             });
 
 });
 
-function makeMap() {  
+function makeMap(thisMsg) {  
   // map.on('style.load', function () {
-  data=Msg.data;
-  // linksData=data.spatial.links;
-  // boundsData=data.spatial.bounds;
-  period=Msg.period;
+  data=thisMsg.data;
+  period=thisMsg.period;
 
   for (var key in data.spatial) {
     if (typeof map.getSource(key) == "undefined"){
-    //if (data.spatial[key].update==0){
-      // need to create the layer and define the styling
+      console.log('Creating '+key+' for first time')
       map.addSource(key, { type: 'geojson', data: data.spatial[key] });
+      console.log(data.spatial[key])
       if (data.spatial[key].features[0].geometry.type=='LineString'){
         map.addLayer({
-              "id": "links",
+              "id": key,
               "type": "line",
               "source": key,
               "layout": {
@@ -117,12 +133,45 @@ function makeMap() {
                   }           
           });
       }
+
+      ////////Toggle capability//////
+      var id = key;
+
+      var link = document.createElement('a');
+      link.href = '#';
+      link.className = 'active';
+      link.textContent = id;
+
+      link.onclick = function (e) {
+          var clickedLayer = this.textContent;
+          e.preventDefault();
+          e.stopPropagation();
+
+          var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+
+          if (visibility === 'visible') {
+              map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+              this.className = '';
+          } else {
+              this.className = 'active';
+              map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+          }
+      };
+
+      var layers = document.getElementById('menu');
+      layers.appendChild(link);
+      ////////Toggle capability//////
+
     }
     else{
       //update data only
-      map.getSource(key).setData(data.spatial[key]);   
+      map.getSource(key).setData(data.spatial[key]); 
+      console.log('updating '+key) 
     }
-    myCustomControl.container.textContent = period;
+    if (typeof period != "undefined"){
+      myCustomControl.container.textContent = period;}
+
+    
   }
 
 }
