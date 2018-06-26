@@ -77,56 +77,53 @@ $(document).ready(function(){
 function makeMap() {  
   // map.on('style.load', function () {
   data=Msg.data;
-  linksData=data.links;
-  boundsData=data.bounds;
+  // linksData=data.spatial.links;
+  // boundsData=data.spatial.bounds;
   period=Msg.period;
 
-  // TODO: clean this up so that an arbitrary number of geojsons can be visualised
-  if (firstTime==1) {
-    map.addSource('linksSource', { type: 'geojson', data: linksData });
-    map.addLayer({
-          "id": "links",
-          "type": "line",
-          "source": 'linksSource',
-          "layout": {
-            "line-join": "round",
-            "line-cap": "round"},
-          "paint": {
-              "line-width":['+',1,['*', 10, ['get', 'scale']]],
-              "line-color":["case", 
-                ['>',['number',['get', 'scale']],0.8],['rgb', 200,0,0],
-                ['>',['number',['get', 'scale']],0.6],['rgb', 200,100,0],
-                ['>',['number',['get', 'scale']],0.4],['rgb', 200,200,0],
-                ['>',['number',['get', 'scale']],0.2],['rgb', 100,200,0],
-                ['rgb', 0,200,0]],
-              // "line-color":[
-              //                 "rgb",
-              //                 ["*",["get", "test"],200], // red is higher when feature.properties.test is higher
-              //                 ['-',200,["*",["get", "test"],200]],// green is lower when feature.properties.test is higher
-              //                 0]// blue is always zero
-              //             ],
-              "line-opacity":1
-          }    
-      });
-    // map.addLayer({
-    //       "id": "bounds",
-    //       "type": "fill",
-    //       "source": { type: 'geojson', data: boundsData },
-    //       'paint': {
-    //         'fill-color': '#fff',
-    //         'fill-opacity': 0.1
-    //     }
-             
-    //   });
-
-
-    firstTime=0;
+  for (var key in data.spatial) {
+    if (typeof map.getSource(key) == "undefined"){
+    //if (data.spatial[key].update==0){
+      // need to create the layer and define the styling
+      map.addSource(key, { type: 'geojson', data: data.spatial[key] });
+      if (data.spatial[key].features[0].geometry.type=='LineString'){
+        map.addLayer({
+              "id": "links",
+              "type": "line",
+              "source": key,
+              "layout": {
+                "line-join": "round",
+                "line-cap": "round"},
+              "paint": {
+                  "line-width":['+',1,['*', 10, ['get', 'scale']]],
+                  "line-color":["case", 
+                    ['>',['number',['get', 'scale']],0.8],['rgb', 200,0,0],
+                    ['>',['number',['get', 'scale']],0.6],['rgb', 200,100,0],
+                    ['>',['number',['get', 'scale']],0.4],['rgb', 200,200,0],
+                    ['>',['number',['get', 'scale']],0.2],['rgb', 100,200,0],
+                    ['rgb', 0,200,0]],
+                  "line-opacity":1
+              }    
+          });
+      }
+      if (data.spatial[key].features[0].geometry.type=='Polygon'){
+          map.addLayer({
+                    "id": key,
+                    "type": "fill",
+                    "source": key,
+                    'paint': {
+                    'fill-color': '#fff',
+                    'fill-opacity': 0.1
+                  }           
+          });
+      }
+    }
+    else{
+      //update data only
+      map.getSource(key).setData(data.spatial[key]);   
+    }
+    myCustomControl.container.textContent = period;
   }
-  //update layer based on latest data from backend
-  map.getSource('linksSource').setData(linksData);
-  console.log(period);
-  myCustomControl.container.textContent = period;
-
 
 }
 

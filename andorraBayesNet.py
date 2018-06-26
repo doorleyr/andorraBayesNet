@@ -20,7 +20,7 @@ fixedTripCost=0.1
 #odSF=1
 maxEps=0.0005
 maxEps2=2
-dates=['2016-09-01']
+dates=['2016-09-01', '2016-09-02']
 periodsPerDay=13
 
 
@@ -357,6 +357,14 @@ for p in range(odAll.shape[2]):
 APE=[100*np.abs((xPredictTest[i]-xObsTest[i])/xObsTest[i])for i in range(len(xPredictTest))]
 np.mean(APE)
 print('Mean Average % Error: '+str(int(np.mean(APE)))+'%')
+
+#import seaborn as sns
+#sns.set_style("whitegrid", {'axes.grid' : False})
+#grid=sns.jointplot(pd.Series([xPredictTest[a] for a in range(len(xObsTest))], name='Predicted Traffic'), 
+#                             pd.Series([xObsTest[a] for a in range(len(xObsTest))], name='Actual Traffic'), 
+#                             alpha=0.4, annot_kws=dict(stat="r"), color='blue',
+#                             xlim=(-100,1500),ylim=(-100,1500))
+#grid.ax_joint.set_aspect('equal')
 
 pickle.dump( outPut, open( "data/results/andorraBayesSolution.p", "wb" ))
 

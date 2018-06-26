@@ -25,6 +25,8 @@ socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
 
+updateInterval=3
+
 def getColor(value, cmap):
     col1=cmap(value)
     #col1Hex='#%02x%02x%02x' % (int(256*col1[0]), int(256*col1[1]), int(256*col1[2]))
@@ -34,20 +36,31 @@ def getColor(value, cmap):
 def background_thread():
     """send server generated events to clients."""
     count = 0
+    # first data
+#    socketio.emit('backendUpdates',
+#                      {'data': {'spatial':{'links':linksOut, 'bounds':bounds}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
+#                      namespace='/test')
+#    socketio.sleep(updateInterval)
+    
+    # data updates
     while True:
-        print("count"+str(count))
         pIndex=count%len(periods)
         for linkIndex in range(len(linksOut['features'])):
-            linksOut['features'][linkIndex]['properties']['width']=1+15*(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic)
-            linksOut['features'][linkIndex]['properties']['color']=getColor(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic, cmap)
             linksOut['features'][linkIndex]['properties']['scale']=math.sqrt(max(0,flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic))
         odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
         matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
-        #updateSpatialData()        
-        socketio.emit('backendUpdates',
-                      {'data': {'links':linksOut, 'bounds':bounds, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
+        if count==0:            
+            socketio.emit('backendUpdates',
+                      {'data': {'spatial':{'links':linksOut, 'bounds':bounds}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
                       namespace='/test')
-        socketio.sleep(15)
+            
+        else:
+            linksOut['update']=1
+            #updateSpatialData()        
+            socketio.emit('backendUpdates',
+                          {'data': {'spatial':{'links':linksOut}, 'od':{'matrix':matrixOut, 'zones':zones}}, 'count': count, 'period': datetime.utcfromtimestamp(periods[pIndex]).strftime("%Y-%m-%d %H:%M:%S")},
+                          namespace='/test')
+        socketio.sleep(updateInterval)
         count+=1
 
 @app.route('/')
@@ -95,23 +108,22 @@ periods=sorted(flows.keys())
 maxTrips=np.max([np.max(flows[p]['OD']) for p in periods])
 maxTraffic=np.max([np.max(flows[p]['Traffic']) for p in periods])
 
-cmap=cm.get_cmap('cool')
-
 pIndex=0
 
+#Initialise the traffic geojson
 featureArray=[]
 for linkIndex, row in netD.iterrows():
-    feat={'type':'Feature','geometry':{'type':'LineString','coordinates': [[row['aNodeLon'], row['aNodeLat']], [row['bNodeLon'], row['bNodeLat']]]},'properties':{'type':row['type']
-    , 'width':20*(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic)
-    ,'color':getColor(flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic, cmap), 'scale':math.sqrt(max(0,flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic))
+    feat={'type':'Feature','geometry':{'type':'LineString','coordinates': [[row['aNodeLon'], row['aNodeLat']], [row['bNodeLon'], row['bNodeLat']]]}
+    ,'properties':{'type':row['type']
+    ,'scale':math.sqrt(max(0,flows[periods[pIndex]]['Traffic'][linkIndex]/maxTraffic))
     }}
     featureArray.extend([feat])
-linksOut={'type':'FeatureCollection', 'features': featureArray}
 
-odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
+linksOut={'type':'FeatureCollection', 'features': featureArray, 'update':0}
+bounds['update']=0
 
-matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
-
+#odList=[max(flows[periods[pIndex]]['OD'][i],0) for i in range(len(flows[periods[pIndex]]['OD']))]
+#matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
 
 #flowsOut={p: {'OD': [[flows[p]['newOD'][i,j] for j in range(len(flows[p]['newOD']))] for i in range(len(flows[p]['newOD']))], 'traffic': flows[p]['newTraffic']} for p in flows}
 #
@@ -121,7 +133,6 @@ matrixOut=[odList[i*nTaz:(i+1)*nTaz] for i in range(nTaz)]
 #    feat={'type':'Feature','geometry':{'type':'Point','coordinates': [zonesLon[z], zonesLat[z]]},'properties':{}}
 #    featureArray.extend([feat])
 #zonesOut={'type':'FeatureCollection', 'features': featureArray}
-
 
 if __name__ == '__main__':
     socketio.run(app, debug=True) 
